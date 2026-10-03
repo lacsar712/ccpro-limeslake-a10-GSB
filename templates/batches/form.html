@@ -4,6 +4,12 @@
 <header class="page-head">
   <div>
     <h1>{% if batch %}编辑熟化批次{% else %}登记熟化批次{% endif %}</h1>
+    {% if rainy_plants %}
+    <p class="rain-warn">
+      雨期中厂区:{% for p in rainy_plants %}{{ p.name }}{{ '、' if not loop.last }}{% endfor %}
+      —— 登记批次或抬峰值前,须先在「雨期遮雨」专页落实当日遮雨档。
+    </p>
+    {% endif %}
   </div>
 </header>
 <form class="panel" method="post">

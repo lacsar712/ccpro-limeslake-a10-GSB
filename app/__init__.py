@@ -31,11 +31,13 @@ def create_app() -> Flask:
     from app.blueprints.board import bp as board_bp
     from app.blueprints.batches import bp as batches_bp
     from app.blueprints.ponds import bp as ponds_bp
+    from app.blueprints.rain import bp as rain_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(board_bp)
     app.register_blueprint(ponds_bp)
     app.register_blueprint(batches_bp)
+    app.register_blueprint(rain_bp)
 
     @app.route("/")
     def index():
@@ -76,7 +78,12 @@ def seed_demo_data() -> None:
         db.session.commit()
         return
 
-    plant = Plant(name="东湾石灰厂", location="江北码头侧", notes="熟化池示范厂区")
+    plant = Plant(
+        name="东湾石灰厂",
+        location="江北码头侧",
+        notes="熟化池示范厂区",
+        rain_season_on=True,  # 种子:雨期已挂起,且暂无遮雨落实档
+    )
     db.session.add(plant)
     db.session.flush()
 

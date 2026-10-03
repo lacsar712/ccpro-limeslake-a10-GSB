@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from flask_login import UserMixin
+from sqlalchemy import event
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
@@ -8,6 +9,18 @@ from app.extensions import db
 
 def utcnow():
     return datetime.now(timezone.utc)
+
+
+def local_today() -> date:
+    """服务器本地时区的「今天」,作为自然日口径。"""
+    return datetime.now(timezone.utc).astimezone().date()
+
+
+def natural_day(dt: datetime) -> date:
+    """取某个时刻所属的自然日(本地时区);naive 时刻按 UTC 处理。"""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone().date()
 
 
 class User(UserMixin, db.Model):
@@ -32,9 +45,16 @@ class Plant(db.Model):
     name = db.Column(db.String(120), nullable=False)
     location = db.Column(db.String(200), nullable=False, default="")
     notes = db.Column(db.Text, nullable=False, default="")
+    rain_season_on = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow)
 
     ponds = db.relationship("Pond", back_populates="plant", cascade="all, delete-orphan")
+    rain_cover_logs = db.relationship(
+        "RainCoverLog",
+        back_populates="plant",
+        cascade="all, delete-orphan",
+        order_by="desc(RainCoverLog.implemented_at)",
+    )
 
 
 class Pond(db.Model):
@@ -75,3 +95,39 @@ class SlakeBatch(db.Model):
     notes = db.Column(db.Text, nullable=False, default="")
 
     pond = db.relationship("Pond", back_populates="batches")
+
+
+class RainCoverLog(db.Model):
+    """雨期遮雨落实档:同厂同自然日未作废档最多一张。"""
+
+    __tablename__ = "rain_cover_logs"
+    __table_args__ = (
+        db.Index(
+            "uq_rain_cover_active_per_plant_day",
+            "plant_id",
+            "log_date",
+            unique=True,
+            postgresql_where=db.text("voided_at IS NULL"),
+            sqlite_where=db.text("voided_at IS NULL"),
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    plant_id = db.Column(db.Integer, db.ForeignKey("plants.id"), nullable=False)
+    cover_method = db.Column(db.String(120), nullable=False)
+    implemented_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    implemented_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    log_date = db.Column(db.Date, nullable=False)
+    voided_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    plant = db.relationship("Plant", back_populates="rain_cover_logs")
+    implementer = db.relationship("User")
+
+
+@event.listens_for(RainCoverLog, "before_insert")
+def _rain_cover_defaults(mapper, connection, target):
+    """任何入库路径都保证落实时刻与自然日一致。"""
+    if target.implemented_at is None:
+        target.implemented_at = utcnow()
+    if target.log_date is None:
+        target.log_date = natural_day(target.implemented_at)

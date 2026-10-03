@@ -30,7 +30,17 @@
   {% endif %}
 
   {% if active_plant %}
-  <p class="plant-meta">{{ active_plant.location or '厂区位置未填' }} · {{ pond_cards|length }} 个池位</p>
+  <p class="plant-meta">
+    {{ active_plant.location or '厂区位置未填' }} · {{ pond_cards|length }} 个池位
+    {% if active_plant.rain_season_on %}
+      · <span class="rain-flag">雨期已挂起</span>
+      {% if rain_log_today %}
+        · 今日遮雨档:{{ rain_log_today.cover_method }}({{ rain_log_today.implementer.username if rain_log_today.implementer else '—' }})
+      {% else %}
+        · <b class="rain-warn">今日遮雨档未落实,登记批次与抬峰值将被拒绝</b>
+      {% endif %}
+    {% endif %}
+  </p>
   {% endif %}
 
   <div class="pond-grid" role="list">
@@ -43,6 +53,9 @@
       href="{{ url_for('board.floor_plan', plant_id=active_plant.id, pond=pond.id) }}"
       data-action="click->board#openDrawer"
     >
+      {% if active_plant.rain_season_on %}
+      <span class="tile-rain" title="雨期已挂起">雨</span>
+      {% endif %}
       <span class="tile-code">{{ pond.code }}</span>
       <span class="tile-status">{{ status_labels.get(pond.status, pond.status) }}</span>
       <span class="tile-meta">
@@ -128,6 +141,9 @@
           </select>
         </label>
         <p class="hint" data-form-hint-target="hint">出灰前须最近批次峰值已记且 ≥ 60℃。</p>
+        {% if active_plant.rain_season_on %}
+        <p class="hint rain-warn">雨期中:登记或修改峰值温度须先落实当日遮雨档;出灰仍只认峰值门槛。</p>
+        {% endif %}
         <button type="submit">保存作业记录</button>
       </form>
       {% endif %}

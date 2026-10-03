@@ -420,6 +420,92 @@ button:hover, .btn:hover { background: #1e293b; }
 }
 .actions { display: flex; gap: 10px; align-items: center; }
 
+/* 雨期遮雨 */
+.pond-tile { position: relative; }
+
+.tile-rain {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #eff6ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.4);
+}
+
+.rain-flag { color: #1d4ed8; font-weight: 700; }
+.rain-warn { color: var(--danger); }
+
+.season-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.season-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.season-card.rain-on {
+  border-color: #93c5fd;
+  background: linear-gradient(165deg, #eff6ff, var(--panel));
+}
+
+.season-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.season-card-meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.badge-rain-on { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
+.badge-active-log { background: #ccfbf1; color: var(--ok); font-weight: 700; }
+.badge-voided { background: #fee2e2; color: var(--danger); }
+
+.rain-new-panel { max-width: none; margin-bottom: 20px; }
+.rain-new-panel h2, .rain-list-head h2 { margin: 0; font-size: 1.05rem; color: var(--slate-deep); }
+
+.rain-new-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.rain-new-form .actions { grid-column: 1 / -1; }
+
+.rain-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.rain-filter label { min-width: 160px; }
+
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #991b1b; }
+.btn-small { padding: 6px 12px; font-size: 0.85rem; }
+
+.inline-form { display: inline; margin: 0; }
+
 @media (max-width: 720px) {
   .topbar, .ops-main { padding-left: 16px; padding-right: 16px; }
   .floor-head { flex-direction: column; }

@@ -3,7 +3,13 @@ from flask_login import login_required
 
 from app.extensions import db
 from app.models import Plant, Pond
-from app.services.rules import RuleError, assert_can_set_pond_status, latest_batch_for_pond
+from app.services.rules import (
+    RuleError,
+    active_rain_cover_for,
+    assert_can_set_pond_status,
+    assert_rain_cover_today,
+    latest_batch_for_pond,
+)
 
 bp = Blueprint("board", __name__, url_prefix="/board")
 
@@ -46,6 +52,10 @@ def floor_plan():
         if selected:
             selected_batch = latest_batch_for_pond(selected)
 
+    rain_log_today = None
+    if active_plant and active_plant.rain_season_on:
+        rain_log_today = active_rain_cover_for(active_plant.id)
+
     return render_template(
         "board/floor.html",
         plants=plants,
@@ -54,6 +64,7 @@ def floor_plan():
         selected=selected,
         selected_batch=selected_batch,
         status_labels=STATUS_LABELS,
+        rain_log_today=rain_log_today,
     )
 
 
@@ -74,12 +85,22 @@ def pond_ops(pond_id: int):
 
     if peak_raw:
         try:
-            batch.peak_temp_c = float(peak_raw)
+            new_peak = float(peak_raw)
         except ValueError:
             flash("峰值温度格式无效", "error")
             return redirect(
                 url_for("board.floor_plan", plant_id=pond.plant_id, pond=pond.id)
             )
+        if new_peak != batch.peak_temp_c:
+            # 雨期门槛:峰值有实际变化(抬峰值)须先落实当日遮雨档
+            try:
+                assert_rain_cover_today(pond.plant, "登记或修改峰值温度")
+            except RuleError as exc:
+                flash(str(exc), "error")
+                return redirect(
+                    url_for("board.floor_plan", plant_id=pond.plant_id, pond=pond.id)
+                )
+            batch.peak_temp_c = new_peak
 
     batch.notes = notes
 

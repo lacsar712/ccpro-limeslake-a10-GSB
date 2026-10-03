@@ -29,12 +29,19 @@ else:
 PY
 
 python << 'PY'
+from sqlalchemy import text
+
 from app import create_app, seed_demo_data
 from app.extensions import db
 
 app = create_app()
 with app.app_context():
     db.create_all()
+    # 兼容旧库:create_all 不会给已存在的 plants 表补列
+    db.session.execute(
+        text("ALTER TABLE plants ADD COLUMN IF NOT EXISTS rain_season_on BOOLEAN NOT NULL DEFAULT FALSE")
+    )
+    db.session.commit()
     seed_demo_data()
     print("migrate/seed done")
 PY

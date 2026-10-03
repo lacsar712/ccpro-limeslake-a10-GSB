@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}雨期遮雨{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>雨期遮雨</h1>
+    <p>雨期挂起期间,该厂登记新批次或抬峰值前,须先有当日未作废的遮雨落实档。</p>
+  </div>
+</header>
+
+<section class="season-grid">
+  {% for card in plant_cards %}
+  {% set plant = card.plant %}
+  {% set log = card.log %}
+  <div class="season-card {% if plant.rain_season_on %}rain-on{% endif %}">
+    <div class="season-card-head">
+      <strong>{{ plant.name }}</strong>
+      {% if plant.rain_season_on %}
+      <span class="badge badge-rain-on">雨期已挂起</span>
+      {% else %}
+      <span class="badge">未挂起雨期</span>
+      {% endif %}
+    </div>
+    <p class="season-card-meta">
+      {% if plant.rain_season_on %}
+        {% if log %}
+          今日遮雨档:已落实 · {{ log.cover_method }} ·
+          {{ log.implemented_at.strftime('%H:%M') if log.implemented_at else '—' }} ·
+          {{ log.implementer.username if log.implementer else '—' }}
+        {% else %}
+          今日遮雨档:<b class="rain-warn">未落实</b>,登记批次与抬峰值将被拒绝
+        {% endif %}
+      {% else %}
+        收起状态,登记批次与抬峰值不要求遮雨档
+      {% endif %}
+    </p>
+    {% if current_user.role == 'admin' %}
+    <form method="post" action="{{ url_for('rain.toggle_season', plant_id=plant.id) }}">
+      <button type="submit" class="btn {% if not plant.rain_season_on %}ghost{% endif %}">
+        {% if plant.rain_season_on %}收起雨期{% else %}挂起雨期{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="empty-board">暂无厂区</p>
+  {% endfor %}
+</section>
+
+<section class="panel rain-new-panel">
+  <h2>新建遮雨落实档</h2>
+  <form method="post" action="{{ url_for('rain.create_log') }}" class="rain-new-form">
+    <label>厂区
+      <select name="plant_id" required>
+        {% for plant in plants %}
+        <option value="{{ plant.id }}">{{ plant.name }}{% if plant.rain_season_on %}(雨期中){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>遮盖方式
+      <input name="cover_method" placeholder="例如:防雨布全覆盖" required maxlength="120" />
+    </label>
+    <label>落实时刻(可空,默认当前)
+      <input name="implemented_at" type="datetime-local" />
+    </label>
+    <div class="actions">
+      <button type="submit">登记落实档</button>
+      <span class="hint">落实人取当前登录账号;同厂同自然日未作废档最多一张。</span>
+    </div>
+  </form>
+</section>
+
+<section>
+  <div class="page-head rain-list-head">
+    <div>
+      <h2>遮雨落实档</h2>
+      <p>按厂区、状态、日期筛选;作废仅管理员可操作。</p>
+    </div>
+  </div>
+  <form class="rain-filter" method="get" action="{{ url_for('rain.dashboard') }}">
+    <label>厂区
+      <select name="plant_id">
+        <option value="">全部</option>
+        {% for plant in plants %}
+        <option value="{{ plant.id }}" {% if filter_plant == plant.id %}selected{% endif %}>{{ plant.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>状态
+      <select name="status">
+        <option value="" {% if not filter_status %}selected{% endif %}>全部</option>
+        <option value="active" {% if filter_status == 'active' %}selected{% endif %}>未作废</option>
+        <option value="voided" {% if filter_status == 'voided' %}selected{% endif %}>已作废</option>
+      </select>
+    </label>
+    <label>日期
+      <input name="date" type="date" value="{{ filter_date }}" />
+    </label>
+    <button type="submit" class="btn">筛选</button>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>厂区</th>
+        <th>遮盖方式</th>
+        <th>落实时刻</th>
+        <th>落实人</th>
+        <th>状态</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.plant.name }}</td>
+        <td>{{ log.cover_method }}</td>
+        <td>{{ log.implemented_at.strftime('%Y-%m-%d %H:%M') if log.implemented_at else '—' }}</td>
+        <td>{{ log.implementer.username if log.implementer else '—' }}</td>
+        <td>
+          {% if log.voided_at %}
+          <span class="badge badge-voided">已作废 {{ log.voided_at.strftime('%m-%d %H:%M') }}</span>
+          {% else %}
+          <span class="badge badge-active-log">未作废</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not log.voided_at and current_user.role == 'admin' %}
+          <form method="post" action="{{ url_for('rain.void_log', log_id=log.id) }}" class="inline-form">
+            <button type="submit" class="btn btn-danger btn-small">作废</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">暂无遮雨落实档</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
