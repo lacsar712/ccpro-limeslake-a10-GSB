@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}雨期遮雨{% endblock %}
+{% block content %}
+<section class="rain-page">
+  <header class="page-head">
+    <div>
+      <h1>雨期遮雨</h1>
+      <p>管理员在此一键挂起 / 收起厂区雨期；雨期中登记批次或抬峰值，须有当日合格未作废遮雨档。</p>
+    </div>
+  </header>
+
+  <h2 class="rain-section-title">厂区雨期状态</h2>
+  <div class="rain-plant-grid">
+    {% for plant in plants %}
+    {% set st = statuses.get(plant.id) %}
+    {% set active = st is not none and st.active %}
+    {% set cover = today_open.get(plant.id) %}
+    <article class="rain-plant-card {% if active %}is-rain{% endif %}">
+      <div class="rain-plant-head">
+        <strong>{{ plant.name }}</strong>
+        {% if active %}
+        <span class="rain-pill on">雨期已挂起</span>
+        {% else %}
+        <span class="rain-pill off">雨期未挂起</span>
+        {% endif %}
+      </div>
+      <p class="rain-plant-meta">{{ plant.location or '厂区位置未填' }}</p>
+      {% if active %}
+        {% if cover %}
+        <p class="rain-cover-state ok">
+          今日遮雨已落实：{{ cover.cover_method }} · {{ cover.implemented_at|local_dt }} · {{ cover.implemented_by.username }}
+        </p>
+        {% else %}
+        <p class="rain-cover-state missing">今日遮雨档缺失——登记批次 / 抬峰值将被拒绝</p>
+        {% endif %}
+      {% else %}
+      <p class="rain-cover-state muted">雨期收起期间，登记与改峰值不要求遮雨档。</p>
+      {% endif %}
+      {% if is_admin %}
+      <form method="post" action="{{ url_for('rain.toggle_season') }}" class="rain-toggle-form">
+        <input type="hidden" name="plant_id" value="{{ plant.id }}" />
+        {% if active %}
+        <button type="submit" class="btn ghost">收起雨期</button>
+        {% else %}
+        <button type="submit" class="btn rain-on-btn">挂起雨期</button>
+        {% endif %}
+      </form>
+      {% endif %}
+    </article>
+    {% else %}
+    <p class="empty-board">暂无厂区</p>
+    {% endfor %}
+  </div>
+
+  <h2 class="rain-section-title">新建遮雨落实档</h2>
+  <form class="panel rain-form" method="post" action="{{ url_for('rain.create_cover') }}">
+    <div class="rain-form-row">
+      <label>厂区
+        <select name="plant_id" required>
+          {% for plant in plants %}
+          <option value="{{ plant.id }}" {% if filters.plant_id == plant.id|string %}selected{% endif %}>{{ plant.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>遮盖方式
+        <input name="cover_method" type="text" maxlength="120" placeholder="如：防雨布全覆盖 / 彩钢棚" required />
+      </label>
+    </div>
+    <div class="rain-form-row">
+      <label>落实时刻
+        <input name="implemented_at" type="datetime-local" value="{{ now_local }}" required />
+      </label>
+      <label>落实人
+        <select name="implemented_by_id">
+          {% for user in workers %}
+          <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>{{ user.username }}{% if user.role == 'admin' %}（管理员）{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <p class="hint">同厂同自然日最多一张未作废档；重复抢档只落一张。操作工可建档，作废仅管理员。</p>
+    <div class="actions">
+      <button type="submit">登记遮雨档</button>
+    </div>
+  </form>
+
+  <h2 class="rain-section-title">遮雨档记录</h2>
+  <form class="rain-filter" method="get" action="{{ url_for('rain.rain_center') }}">
+    <label>厂区
+      <select name="plant_id">
+        <option value="">全部厂区</option>
+        {% for plant in plants %}
+        <option value="{{ plant.id }}" {% if filters.plant_id == plant.id|string %}selected{% endif %}>{{ plant.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>状态
+      <select name="state">
+        <option value="open" {% if filters.state == 'open' %}selected{% endif %}>未作废</option>
+        <option value="voided" {% if filters.state == 'voided' %}selected{% endif %}>已作废</option>
+        <option value="all" {% if filters.state == 'all' %}selected{% endif %}>全部</option>
+      </select>
+    </label>
+    <label>日期
+      <input name="date" type="date" value="{{ filters.date }}" />
+    </label>
+    <button type="submit" class="btn ghost">筛选</button>
+  </form>
+
+  <table class="data-table rain-table">
+    <thead>
+      <tr>
+        <th>厂区</th>
+        <th>自然日</th>
+        <th>遮盖方式</th>
+        <th>落实时刻</th>
+        <th>落实人</th>
+        <th>状态</th>
+        <th>作废信息</th>
+        {% if is_admin %}<th>作废</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for cover in covers %}
+      <tr class="{% if cover.voided_at %}row-voided{% endif %}">
+        <td>{{ cover.plant.name }}</td>
+        <td>{{ cover.cover_date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ cover.cover_method }}</td>
+        <td>{{ cover.implemented_at|local_dt }}</td>
+        <td>{{ cover.implemented_by.username }}</td>
+        <td>
+          {% if cover.voided_at %}
+          <span class="rain-pill off">已作废</span>
+          {% else %}
+          <span class="rain-pill on">未作废</span>
+          {% endif %}
+        </td>
+        <td class="rain-void-info">
+          {% if cover.voided_at %}
+            {{ cover.voided_at|local_dt }} · {{ cover.voided_by.username if cover.voided_by else '—' }}
+            {% if cover.void_reason %}<br /><span class="muted">{{ cover.void_reason }}</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        {% if is_admin %}
+        <td>
+          {% if not cover.voided_at %}
+          <form method="post" action="{{ url_for('rain.void_cover', cover_id=cover.id) }}" class="rain-void-form">
+            <input name="void_reason" type="text" maxlength="200" placeholder="作废原因（可空）" />
+            <button type="submit" class="btn danger-btn">作废</button>
+          </form>
+          {% endif %}
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ 8 if is_admin else 7 }}">没有符合条件的遮雨档</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not is_admin %}
+  <p class="hint">你当前为操作工：可登记遮雨档；作废操作仅管理员可执行。</p>
+  {% endif %}
+</section>
+{% endblock %}

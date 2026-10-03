@@ -7,6 +7,11 @@
   </div>
 </header>
 <form class="panel" method="post">
+  {% if rain_blocked_plants %}
+  <p class="rain-inline-warn">
+    以下厂区正处于雨期且今日无合格遮雨档，选择并保存将被中文拒绝：{{ rain_blocked_plants|join('、') }}
+  </p>
+  {% endif %}
   <label>熟化池
     <select name="pond_id" required>
       {% for pond in ponds %}

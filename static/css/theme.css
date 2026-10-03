@@ -420,6 +420,192 @@ button:hover, .btn:hover { background: #1e293b; }
 }
 .actions { display: flex; gap: 10px; align-items: center; }
 
+/* ===== 雨期遮雨 ===== */
+.rain-nav { position: relative; }
+.rain-nav.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #e0f2fe;
+}
+
+.tile-rain-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #f0f9ff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.45);
+}
+
+.pond-tile { position: relative; }
+
+.rain-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.rain-banner a { color: inherit; text-decoration: underline; }
+
+.rain-banner.is-missing {
+  background: #ffe4e6;
+  color: #9f1239;
+  border: 1px solid #fda4af;
+}
+
+.rain-banner.is-covered {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #7dd3fc;
+}
+
+.rain-banner-tag {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #f0f9ff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rain-inline-warn {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #ffe4e6;
+  color: #9f1239;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rain-inline-ok {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rain-page { max-width: 1100px; display: grid; gap: 8px; }
+.rain-section-title {
+  margin: 18px 0 4px;
+  font-size: 1.02rem;
+  color: var(--slate-deep);
+}
+
+.rain-plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.rain-plant-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.rain-plant-card.is-rain {
+  border-color: #0284c7;
+  background: linear-gradient(160deg, #f0f9ff, #e0f2fe);
+}
+
+.rain-plant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rain-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rain-pill.on { background: #0284c7; color: #f0f9ff; }
+.rain-pill.off { background: #e2e8f0; color: #475569; }
+
+.rain-plant-meta { margin: 0; color: var(--muted); font-size: 0.86rem; }
+.rain-cover-state { margin: 0; font-size: 0.86rem; font-weight: 600; }
+.rain-cover-state.ok { color: #075985; }
+.rain-cover-state.missing { color: #9f1239; }
+.rain-cover-state.muted { color: var(--muted); font-weight: 500; }
+
+.rain-toggle-form { margin-top: 4px; display: flex; justify-content: flex-end; }
+
+button.rain-on-btn {
+  background: #0284c7;
+  color: #f0f9ff;
+}
+button.rain-on-btn:hover { background: #0369a1; }
+
+.rain-form {
+  max-width: none;
+  grid-template-columns: 1fr;
+}
+
+.rain-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.rain-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.rain-filter label { font-size: 0.85rem; }
+
+.rain-table .row-voided { opacity: 0.62; }
+.rain-void-info .muted { color: var(--muted); }
+
+.rain-void-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rain-void-form input { padding: 7px 10px; width: 150px; }
+
+button.danger-btn, .btn.danger-btn {
+  background: var(--danger);
+  color: #fff;
+  padding: 8px 12px;
+}
+button.danger-btn:hover { background: #991b1b; }
+
 @media (max-width: 720px) {
   .topbar, .ops-main { padding-left: 16px; padding-right: 16px; }
   .floor-head { flex-direction: column; }

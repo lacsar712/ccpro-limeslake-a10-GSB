@@ -31,11 +31,13 @@ def create_app() -> Flask:
     from app.blueprints.board import bp as board_bp
     from app.blueprints.batches import bp as batches_bp
     from app.blueprints.ponds import bp as ponds_bp
+    from app.blueprints.rain import bp as rain_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(board_bp)
     app.register_blueprint(ponds_bp)
     app.register_blueprint(batches_bp)
+    app.register_blueprint(rain_bp)
 
     @app.route("/")
     def index():
@@ -46,13 +48,25 @@ def create_app() -> Flask:
             return redirect(url_for("board.floor_plan"))
         return redirect(url_for("auth.login"))
 
+    from app.services.rules import LOCAL_TZ
+
+    @app.template_filter("local_dt")
+    def local_dt_filter(value):
+        if value is None:
+            return "—"
+        from datetime import timezone
+
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M")
+
     return app
 
 
 def seed_demo_data() -> None:
     from datetime import timedelta
 
-    from app.models import Plant, Pond, SlakeBatch, User, utcnow
+    from app.models import Plant, Pond, RainCover, RainSeasonStatus, SlakeBatch, User, utcnow
 
     if not User.query.filter_by(username="admin").first():
         admin = User(username="admin", role="admin")
@@ -73,12 +87,23 @@ def seed_demo_data() -> None:
         worker.role = "worker"
 
     if Plant.query.first():
+        # 幂等补齐：已存在的演示厂区默认处于雨期，且不带任何遮雨档
+        for existing_plant in Plant.query.all():
+            if not RainSeasonStatus.query.filter_by(
+                plant_id=existing_plant.id
+            ).first():
+                db.session.add(
+                    RainSeasonStatus(plant_id=existing_plant.id, active=True)
+                )
         db.session.commit()
         return
 
     plant = Plant(name="东湾石灰厂", location="江北码头侧", notes="熟化池示范厂区")
     db.session.add(plant)
     db.session.flush()
+
+    # 种子：雨期已挂起，且没有任何遮雨落实档
+    db.session.add(RainSeasonStatus(plant_id=plant.id, active=True))
 
     p1 = Pond(plant=plant, code="P-01", status=Pond.STATUS_SLAKING, capacity_m3=48.0)
     p2 = Pond(plant=plant, code="P-02", status=Pond.STATUS_FILLING, capacity_m3=36.0)

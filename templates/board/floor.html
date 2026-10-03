@@ -33,6 +33,18 @@
   <p class="plant-meta">{{ active_plant.location or '厂区位置未填' }} · {{ pond_cards|length }} 个池位</p>
   {% endif %}
 
+  {% if rain_active %}
+  <div class="rain-banner {% if rain_covered %}is-covered{% else %}is-missing{% endif %}" role="status">
+    {% if rain_covered %}
+    <span class="rain-banner-tag">雨</span>
+    <span>该厂正处于雨期，今日遮雨落实档已落实，可正常登记批次与抬峰值。</span>
+    {% else %}
+    <span class="rain-banner-tag">雨</span>
+    <span>该厂正处于雨期且今日无合格遮雨档——登记批次 / 抬峰值将被中文拒绝；出灰仍只认峰值门槛。<a href="{{ url_for('rain.rain_center', plant_id=active_plant.id) }}">前往雨期遮雨页建档</a></span>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="pond-grid" role="list">
     {% for card in pond_cards %}
     {% set pond = card.pond %}
@@ -43,6 +55,7 @@
       href="{{ url_for('board.floor_plan', plant_id=active_plant.id, pond=pond.id) }}"
       data-action="click->board#openDrawer"
     >
+      {% if rain_active %}<span class="tile-rain-badge" title="厂区雨期已挂起">雨</span>{% endif %}
       <span class="tile-code">{{ pond.code }}</span>
       <span class="tile-status">{{ status_labels.get(pond.status, pond.status) }}</span>
       <span class="tile-meta">
@@ -108,6 +121,11 @@
         action="{{ url_for('board.pond_ops', pond_id=selected.id) }}"
         data-controller="form-hint"
       >
+        {% if rain_active and not rain_covered %}
+        <p class="rain-inline-warn">雨期且今日无遮雨档：提交「抬峰值」将被拒绝，请先到雨期遮雨页建档；改状态 / 出灰不受影响。</p>
+        {% elif rain_active %}
+        <p class="rain-inline-ok">雨期：今日遮雨档已落实，可登记 / 修正峰值。</p>
+        {% endif %}
         <label>登记 / 修正峰值温度 ℃
           <input
             name="peak_temp_c"
